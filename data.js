@@ -94,21 +94,23 @@ window.GAS_DATA = (() => {
     }
   };
 
+  // The YouTube channel URLs are for the parent-only external-link section.
+  // Every child-facing creator link points to the corresponding internal page.
   const creators = [
-    ['KeshArt', '短小的基础技巧与角色实验，适合拿起笔马上试。'],
-    ['The Art of Aaron Blaise', '从动物的观察和动作走向有生命力的角色。'],
-    ['Mitch Leeuwe', '把复杂动物与角色拆成可以理解的基本形状。'],
-    ['Winged Canvas', '用清晰示例理解头部、角色结构与构图。'],
-    ['BaM Animation', '从动画角度分析角色设计、背景与故事表达。'],
-    ['Circle Line Art School', '用直观线条学习房间、城市和透视空间。'],
-    ['Diane Antone Studio', '用水彩和轻松的色块创造小动物。'],
-    ['Kasey The Golden', '从画材和限制条件中发现有趣的创意。'],
-    ['LavenderTowne', '有趣的卡通表情和视觉对比练习。'],
-    ['Emily Olson Art', '以具体的小动物主题演示线条与水彩。'],
-    ['markcrilley', '徒手表现漫画式的空间与远近关系。'],
-    ['Moriah Elizabeth', '从旧画改造与创作挑战中寻找灵感。'],
-    ['Jazza', '角色设计和大胆的随机创意挑战。']
-  ].map(([name, description]) => ({ name, description }));
+    { id: 'keshart', name: 'KeshArt', description: '短小的基础技巧与角色实验，适合拿起笔马上试。', focus: 'Shape Language · Gesture', starter: '01', challenge: '用圆形和三角形各画一个小怪兽，再给它们设计不同的动作。', channelUrl: 'https://www.youtube.com/@keshart' },
+    { id: 'aaron-blaise', name: 'The Art of Aaron Blaise', description: '从动物的观察和动作走向有生命力的角色。', focus: 'Animal Drawing · Character Design', starter: '08', challenge: '观察一种动物的耳朵、眼睛或爪子，保留两个真实特征，再夸张其中一个。', channelUrl: 'https://www.youtube.com/@aaronblaiseart' },
+    { id: 'mitch-leeuwe', name: 'Mitch Leeuwe', description: '把复杂动物与角色拆成可以理解的基本形状。', focus: 'Construction · Proportion', starter: '05', challenge: '只用圆与椭圆，画出同一种动物的两种身体比例。', channelUrl: 'https://www.youtube.com/@mitchart' },
+    { id: 'winged-canvas', name: 'Winged Canvas', description: '用清晰示例理解头部、角色结构与构图。', focus: 'Head Construction · Composition', starter: '06', challenge: '为同一张脸画三个视角，再试试把角色放在画面的边缘。', channelUrl: 'https://www.youtube.com/@wingedcanvas' },
+    { id: 'bam-animation', name: 'BaM Animation', description: '从动画角度分析角色设计、背景与故事表达。', focus: 'Backgrounds · Character Design', starter: '13', challenge: '给自己的幻想动物画一个简单背景：前面一棵树，远处一座山。', channelUrl: 'https://www.youtube.com/@bamanimation' },
+    { id: 'circle-line-art-school', name: 'Circle Line Art School', description: '用直观线条学习房间、城市和透视空间。', focus: 'One-Point Perspective · Space', starter: '14', challenge: '从一个消失点画出小房间，再加上一件只属于你的秘密物品。', channelUrl: 'https://www.youtube.com/@circlelineartschool' },
+    { id: 'diane-antone-studio', name: 'Diane Antone Studio', description: '用水彩和轻松的色块创造小动物。', focus: 'Watercolor · Whimsical Animals', starter: '10', challenge: '让一块不规则的水彩颜色变成一只想象中的鸟。', channelUrl: 'https://www.youtube.com/@dianeantonestudio' },
+    { id: 'kasey-the-golden', name: 'Kasey The Golden', description: '从画材和限制条件中发现有趣的创意。', focus: 'Color Challenges · Watercolor', starter: '12', challenge: '随机选一个颜色，只改变它的深浅来画一只小动物。', channelUrl: 'https://www.youtube.com/@KaseyTheGolden' },
+    { id: 'lavendertowne', name: 'LavenderTowne', description: '有趣的卡通表情和视觉对比练习。', focus: 'Facial Expressions · Cartooning', starter: '04', challenge: '画两个都很惊讶的小角色：一个开心，一个害怕。', channelUrl: 'https://www.youtube.com/@LavenderTowne' },
+    { id: 'emily-olson-art', name: 'Emily Olson Art', description: '以具体的小动物主题演示线条与水彩。', focus: 'Line and Wash · Watercolor', starter: '11', challenge: '先用简单线条画一只小狗，再用一两种颜色轻轻铺出毛色。', channelUrl: 'https://www.youtube.com/@EmilyOlsonArt' },
+    { id: 'markcrilley', name: 'markcrilley', description: '徒手表现漫画式的空间与远近关系。', focus: 'Perspective · Freehand Drawing', starter: '16', challenge: '不用尺子画一条小路，试试让两侧的树越远越小。', channelUrl: 'https://www.youtube.com/@markcrilley' },
+    { id: 'moriah-elizabeth', name: 'Moriah Elizabeth', description: '从旧画改造与创作挑战中寻找灵感。', focus: 'Art Makeover · Creativity', starter: '19', challenge: '翻出一张旧画：留下你喜欢的两个部分，再大胆改变一个地方。', channelUrl: 'https://www.youtube.com/@moriahelizabeth' },
+    { id: 'jazza', name: 'Jazza', description: '角色设计和大胆的随机创意挑战。', focus: 'Character Design · Creative Prompts', starter: '20', challenge: '抽三个随机词，先画两张小草图，再选一张发展成新角色。', channelUrl: 'https://www.youtube.com/@Jazza' }
+  ];
 
   const books = [
     { name: 'How to THINK When You Draw', by: 'The Etherington Brothers', type: '免费图解', desc: '官方免费图解目录：从各种物品的形状开始学习“怎样想”。英文图解，适合按兴趣挑选。', url: 'https://theetheringtonbrothers.blogspot.com/p/every-how-to-think-when-you-draw.html' },
