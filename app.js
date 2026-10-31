@@ -6,6 +6,8 @@
   const app = document.getElementById('app');
   const toastElement = document.getElementById('toast');
   const rMap = new Map(D.resources.map(r => [r.id, r]));
+  const creatorByName = new Map(D.creators.map(c => [c.name, c]));
+  const creatorById = new Map(D.creators.map(c => [c.id, c]));
   let toastTimer = null;
   let currentPrompt = [pick(D.prompts.characters), pick(D.prompts.traits), pick(D.prompts.actions)];
 
@@ -39,6 +41,20 @@
   const resUrl = id => D.lessons[id] ? `/learn/lessons/${id}` : `/learn/video/${id}`;
   function cleanTitle(id) { return D.lessons[id]?.title || rMap.get(id)?.title || '绘画练习'; }
   function sourceLink(r) { return `https://www.youtube.com/watch?v=${encodeURIComponent(r.videoId)}`; }
+  function creatorUrl(name) { const c=creatorByName.get(name); return c?`/learn/creator/${c.id}`:'/learn/creators'; }
+  function creatorLink(name) { return `<a class="creator-link" href="${route(creatorUrl(name))}">${esc(name)}</a>`; }
+  function parentExternalButton(url, label) {
+    return `<button type="button" class="parent-external-btn" data-action="leave-site" data-url="${esc(url)}">${esc(label)} ↗</button>`;
+  }
+  function safeYouTubeUrl(value) {
+    try {
+      const url=new URL(value);
+      if(url.origin!=='https://www.youtube.com')return null;
+      if(/^\/@[a-zA-Z0-9_-]+\/?$/.test(url.pathname))return url.href;
+      if(url.pathname==='/watch' && /^[a-zA-Z0-9_-]{11}$/.test(url.searchParams.get('v')||''))return url.href;
+    } catch { /* Never open unknown external destinations. */ }
+    return null;
+  }
   function countForSkill(id) { return D.resources.filter(r => r.tags.includes(id)).length; }
   function labelForKind(kind) { return ({lesson:'跟着学技法',demo:'看画师示范',inspiration:'灵感与创作'})[kind] || '视频'; }
   function tagForLevel(level) { return ({easy:'轻松上手',explore:'按兴趣进阶',imagine:'看看灵感'})[level] || ''; }
@@ -60,6 +76,9 @@
   }
   function footer() {
     return `<footer class="site-footer"><div><strong>Grace’s Art Studio</strong> · 观察一点，尝试一下，再创造自己的版本。</div><div>画作留在纸上；收藏仅保存在当前浏览器。视频版权属于原作者。 <a href="#/learn/books">精选参考资源</a></div></footer>`;
+  }
+  function leaveDialog() {
+    return `<dialog id="leave-dialog" class="leave-dialog" aria-labelledby="leave-title" aria-describedby="leave-description"><div class="leave-inner"><span class="leave-icon" aria-hidden="true">☘</span><div class="kicker">PARENT VIEW · 家长查看</div><h2 id="leave-title">准备离开绘画工坊？</h2><p id="leave-description">接下来会在新页面打开 YouTube。那里可能出现相关推荐、其他频道和外部链接，不再是本站精选的绘画学习环境。</p><p class="leave-guidance">建议由家长查看；Grace 可以继续留在这里看精选视频、动手画画。</p><div class="leave-actions"><button class="btn" type="button" data-action="cancel-leave">留在绘画工坊</button><a id="leave-confirm-link" class="btn secondary" href="#/" target="_blank" rel="noopener noreferrer" data-action="confirm-leave">家长确认，继续打开 ↗</a></div></div></dialog>`;
   }
   function crumb(...items) { return `<div class="breadcrumbs">${items.map((it,i)=> i ? `<span>›</span><${it.url?'a':'span'} ${it.url?`href="${route(it.url)}"`:''}>${esc(it.text)}</${it.url?'a':'span'}>` : `<a href="${route(it.url||'/')}">${esc(it.text)}</a>`).join('')}</div>`; }
   function sectionHeading(title, description='',href='',action='查看全部') { return `<div class="section-head"><div><h2>${title}</h2>${description?`<p>${description}</p>`:''}</div>${href?`<a class="link-arrow" href="${route(href)}">${action} ↗</a>`:''}</div>`; }
@@ -97,7 +116,7 @@
   }
 
   function videoPlayer(r) {
-    return `<div class="paper-card video-card"><div class="video-shell" id="video-shell-${r.id}"><button class="video-trigger" data-action="load-video" data-video="${esc(r.videoId)}" data-title="${esc(r.title)}" aria-label="播放 ${esc(r.title)}"><span class="video-placeholder-sketch" aria-hidden="true">◌ ↗ ✧</span><span class="play-round" aria-hidden="true">▶</span><span>点击观看英文原视频</span></button></div><div class="video-meta"><div><strong>${esc(r.creator)} · ${r.duration}</strong><span class="source-title">${esc(r.title)}</span></div><a href="${sourceLink(r)}" target="_blank" rel="noopener noreferrer">在 YouTube 打开 ↗</a></div></div><div class="video-note">使用 YouTube 官方播放器；只有点击后才加载视频。如果无法站内播放，可以从上方链接在 YouTube 打开。视频结束后的推荐仍由 YouTube 控制。</div>`;
+    return `<div class="paper-card video-card"><div class="video-shell" id="video-shell-${r.id}"><button class="video-trigger" data-action="load-video" data-video="${esc(r.videoId)}" data-title="${esc(r.title)}" aria-label="播放 ${esc(r.title)}"><span class="video-placeholder-sketch" aria-hidden="true">◌ ↗ ✧</span><span class="play-round" aria-hidden="true">▶</span><span>点击观看英文原视频</span></button></div><div class="video-meta"><div><strong>${creatorLink(r.creator)} <span class="subtle">· ${esc(r.duration)}</span></strong><span class="source-title">${esc(r.title)}</span></div><span class="badge sage">站内精选观看</span></div></div><div class="watch-followup"><button class="btn sm sage" type="button" data-action="scroll-drawing">✎ 看完了，开始画！</button><span>不用看完所有视频，试一小步就好。</span></div><details class="parent-source"><summary>家长查看 · 原视频 YouTube 链接</summary><div class="parent-source-content"><p>如果站内播放器不可用，家长可以从原视频网站打开这条视频。</p>${parentExternalButton(sourceLink(r),'家长打开原视频')}</div></details><div class="video-note">使用 YouTube 官方嵌入播放器，仅在点击时加载。播放器内部的链接和视频结束后的推荐仍由 YouTube 控制，无法从本站完全屏蔽。</div>`;
   }
   function favoriteButton(id,buttonClass='btn secondary') { const saved = state.favorites.includes(id); return `<button class="${buttonClass} fav-btn" data-action="favorite" data-id="${id}" aria-pressed="${saved}">${saved?'♥ 已收藏':'♡ 收藏'}</button>`; }
   function triedButton(id) {const tried = state.tried.includes(id);return `<button class="btn" data-action="tried" data-id="${id}" aria-pressed="${tried}">${tried?'✓ 我已经试过啦':'✓ 我试过啦'}</button>`;}
@@ -107,14 +126,14 @@
     return `<div class="shell">${crumb({text:'首页',url:'/'},{text:'学画画',url:'/learn'},{text:L.tag,url:'/learn/skill/'+r.tags[r.tags.length-1]},{text:L.title})}
       <div class="lesson-head"><span class="badge coral">完整学习卡 · ${esc(L.time)}</span> <span class="badge sage">${esc(L.materials)}</span><h1>${esc(L.title)}</h1><div class="english">${esc(L.sub)}</div></div>
       <div class="lesson-layout"><div class="video-column">${videoPlayer(r)}<div class="lesson-extras"><div class="paper-card"><h3>今天遇到的英文绘画词</h3><div class="terms">${L.terms.map(([en,zh])=>`<details class="term"><summary>${esc(en)} ⌄</summary><p>${esc(zh)}</p></details>`).join('')}</div></div>${L.chapters?`<div class="paper-card"><h3>原作者的视频章节</h3><div class="chapter-row">${L.chapters.map(([time,desc])=>`<span class="badge sage">${time} · ${esc(desc)}</span>`).join('')}</div><p class="small subtle" style="margin:12px 0 0">章节时间来自原视频公开简介；你可以回到播放器寻找对应片段。</p></div>`:''}<div class="lesson-reflect"><h3>画完想一想</h3><p>${esc(L.reflect)}</p><p class="small subtle" style="margin-top:10px">这不是考试，不用提交答案。${esc(L.success)}</p></div></div></div>
-      <div class="task-column"><div class="paper-card task-card question"><h3>✦ 今天的问题</h3><p>${esc(L.question)}</p></div><div class="paper-card task-card observe"><h3>◌ 看视频时留意</h3><ul>${L.notice.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div class="paper-card task-card experiment"><h3>✎ 动手试一试 <span class="badge sage">3–5分钟</span></h3><ul class="check-list">${L.steps.map(x=>`<li><label><input type="checkbox"/><span>${esc(x)}</span></label></li>`).join('')}</ul></div><div class="paper-card task-card create"><h3>✧ 创造自己的版本</h3><p>${esc(L.creative)}</p></div>
+      <div class="task-column" id="drawing-task"><div class="paper-card task-card question"><h3>✦ 今天的问题</h3><p>${esc(L.question)}</p></div><div class="paper-card task-card observe"><h3>◌ 看视频时留意</h3><ul>${L.notice.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div class="paper-card task-card experiment"><h3>✎ 动手试一试 <span class="badge sage">3–5分钟</span></h3><ul class="check-list">${L.steps.map(x=>`<li><label><input type="checkbox"/><span>${esc(x)}</span></label></li>`).join('')}</ul></div><div class="paper-card task-card create"><h3>✧ 创造自己的版本</h3><p>${esc(L.creative)}</p></div>
         <details class="hint-box"><summary>💡 卡住了？给我一点提示</summary><div class="hint-content"><p>${esc(L.hints[0])}</p><details><summary>再给我一个具体起点</summary><p>${esc(L.hints[1])}</p></details></div></details><div class="task-actions">${triedButton(id)}${favoriteButton(id)}</div><div class="detail-links"><a class="link-arrow" href="#/project/character">← 返回角色项目</a>${L.next.map(n=>`<a class="link-arrow" href="${route(resUrl(n))}">下一步：${esc(cleanTitle(n))} ↗</a>`).join('')}</div></div></div>
     </div>`;
   }
   function resourceDetail(id) {
     const r=rMap.get(id);if(!r)return notFound();
     if(D.lessons[id])return lessonPage(id);
-    return `<div class="shell">${crumb({text:'首页',url:'/'},{text:'学画画',url:'/learn'},{text:'视频资源',url:'/learn/resources'},{text:r.creator})}<div class="lesson-head"><span class="badge lavender">${labelForKind(r.kind)}</span> <span class="badge sage">${tagForLevel(r.level)}</span><h1>${esc(r.title)}</h1><div class="english">${esc(r.creator)} · ${r.duration}</div></div><div class="lesson-layout"><div>${videoPlayer(r)}</div><div class="task-column"><div class="paper-card task-card question"><h3>✦ 我可以观察什么？</h3><p>这条视频是精选资源，不是已经制作完整中文学习卡的课程。可以先观察画师如何表现这个主题，再按自己的方式动笔。</p></div><div class="paper-card task-card create"><h3>✎ 今天的小挑战</h3><p>${esc(r.micro)}</p></div><div class="paper-card task-card"><h3>准备材料</h3><p>${esc(r.materials||'纸和铅笔即可先进行简化实验。')}</p></div><div class="task-actions">${triedButton(id)}${favoriteButton(id)}</div><div class="detail-links"><a href="#/learn/resources" class="link-arrow">← 返回全部视频</a></div></div></div></div>`;
+    return `<div class="shell">${crumb({text:'首页',url:'/'},{text:'学画画',url:'/learn'},{text:'视频资源',url:'/learn/resources'},{text:r.creator,url:creatorUrl(r.creator)},{text:'精选视频'})}<div class="lesson-head"><span class="badge lavender">${labelForKind(r.kind)}</span> <span class="badge sage">${tagForLevel(r.level)}</span><h1>${esc(r.title)}</h1><div class="english">${creatorLink(r.creator)} · ${esc(r.duration)}</div></div><div class="lesson-layout"><div>${videoPlayer(r)}</div><div class="task-column" id="drawing-task"><div class="paper-card task-card question"><h3>✦ 我可以观察什么？</h3><p>这条视频是精选资源，不是已经制作完整中文学习卡的课程。可以先观察画师如何表现这个主题，再按自己的方式动笔。</p></div><div class="paper-card task-card create"><h3>✎ 今天的小挑战</h3><p>${esc(r.micro)}</p></div><div class="paper-card task-card"><h3>准备材料</h3><p>${esc(r.materials||'纸和铅笔即可先进行简化实验。')}</p></div><div class="task-actions">${triedButton(id)}${favoriteButton(id)}</div><div class="detail-links"><a href="${route(creatorUrl(r.creator))}" class="link-arrow">← 返回画师主页</a><a href="#/learn/resources" class="link-arrow">视频资源库 ↗</a></div></div></div></div>`;
   }
 
   function learn() {
@@ -133,7 +152,7 @@
 
   function resourceCard(r) {
     const mainTag=D.skills.find(s=>r.tags.includes(s.id))||D.skills[0];
-    return `<article class="paper-card resource-card"><a href="${route(resUrl(r.id))}"><div class="resource-art ${esc(mainTag.id)}"><span class="resource-symbol" aria-hidden="true">${mainTag.icon}</span><span class="duration">${r.duration}</span></div></a><div class="resource-info"><span class="badge ${r.kind==='inspiration'?'lavender':'sage'}">${labelForKind(r.kind)}</span> <span class="badge">${tagForLevel(r.level)}</span><h3>${esc(r.title)}</h3><p>${esc(r.creator)} · ${r.tags.map(t=>D.skills.find(s=>s.id===t)?.name).filter(Boolean).join(' / ')}</p><p>${esc(r.micro)}</p><div class="resource-actions"><a class="btn sm secondary" href="${route(resUrl(r.id))}">${D.lessons[r.id]?'打开学习卡':'观看与尝试'} ↗</a>${favoriteButton(r.id,'fav-btn')}</div></div></article>`;
+    return `<article class="paper-card resource-card"><a href="${route(resUrl(r.id))}"><div class="resource-art ${esc(mainTag.id)}"><span class="resource-symbol" aria-hidden="true">${mainTag.icon}</span><span class="duration">${esc(r.duration)}</span></div></a><div class="resource-info"><span class="badge ${r.kind==='inspiration'?'lavender':'sage'}">${labelForKind(r.kind)}</span> <span class="badge">${tagForLevel(r.level)}</span><h3>${esc(r.title)}</h3><p>${creatorLink(r.creator)} · ${r.tags.map(t=>D.skills.find(s=>s.id===t)?.name).filter(Boolean).join(' / ')}</p><p>${esc(r.micro)}</p><div class="resource-actions"><a class="btn sm secondary" href="${route(resUrl(r.id))}">${D.lessons[r.id]?'打开学习卡':'观看与尝试'} ↗</a>${favoriteButton(r.id,'fav-btn')}</div></div></article>`;
   }
   function resourcesPage(query) {
     const skill=query.get('skill')||'',creator=query.get('creator')||'';
@@ -143,7 +162,25 @@
     </div>`;
   }
   function creatorPage() {
-    return `<div class="shell">${crumb({text:'首页',url:'/'},{text:'学画画',url:'/learn'},{text:'认识画师'})}<section class="page-intro"><div class="kicker">ARTISTS & TEACHERS</div><h1>跟不同画师学，发现不同的看法</h1><p>13个频道各有特色：有些擅长动画角色，有些喜欢水彩与想象。点击画师，可以查看本站收录的对应视频。</p></section><div class="tabs"><a href="#/learn">能力地图</a><a href="#/learn/resources">视频资源库</a><a class="active" href="#/learn/creators">认识画师</a><a href="#/learn/books">图解与书架</a></div><div class="creator-grid">${D.creators.map((c,i)=>{const n=D.resources.filter(r=>r.creator===c.name).length;return `<div class="paper-card creator-card"><div class="creator-avatar">${i%3===0?'✎':i%3===1?'◌':'✦'}</div><h3>${esc(c.name)}</h3><p>${esc(c.description)}</p><div class="badge sage">本站收录 ${n} 条视频</div><div style="margin-top:16px"><a class="link-arrow" href="${route('/learn/resources?creator='+encodeURIComponent(c.name))}">查看相关视频 ↗</a></div></div>`}).join('')}</div><p class="subtle small" style="margin-top:21px">画师的更多作品请通过对应视频进入其原始频道。本站不重新发布画师的课程或付费资料。</p></div>`;
+    return `<div class="shell">${crumb({text:'首页',url:'/'},{text:'学画画',url:'/learn'},{text:'认识画师'})}<section class="page-intro"><div class="kicker">ARTISTS & TEACHERS</div><h1>走进画师的小小工作室</h1><p>13 位画师各有特别的观察和表达方式。点开一位画师，先在本站看看精选教程，再用自己的画笔试一试。</p></section><div class="tabs"><a href="#/learn">能力地图</a><a href="#/learn/resources">视频资源库</a><a class="active" href="#/learn/creators">认识画师</a><a href="#/learn/books">图解与书架</a></div><div class="creator-grid">${D.creators.map((c,i)=>{const n=D.resources.filter(r=>r.creator===c.name).length;return `<a class="paper-card creator-card creator-card-link" href="${route('/learn/creator/'+c.id)}"><div class="creator-avatar">${i%3===0?'✎':i%3===1?'◌':'✦'}</div><h3>${esc(c.name)}</h3><p>${esc(c.description)}</p><div class="creator-card-footer"><span class="badge sage">${n} 条站内精选</span><span class="link-arrow">走进工作室 ↗</span></div></a>`}).join('')}</div><p class="subtle small" style="margin-top:21px">这里展示的是本站挑选的学习资源，不会自动进入画师的完整 YouTube 频道。</p></div>`;
+  }
+  function creatorDetailPage(id) {
+    const c=creatorById.get(id); if(!c)return notFound();
+    const own=D.resources.filter(r=>r.creator===c.name);
+    const start=own.find(r=>r.id===c.starter)||own[0];
+    if(!start)return notFound();
+    const more=own.filter(r=>r.id!==start.id);
+    const related=more.length?[]:D.resources.filter(r=>r.creator!==c.name && r.tags.some(tag=>start.tags.includes(tag))).slice(0,2);
+    const lesson=D.lessons[start.id];
+    const heading=lesson?lesson.title:start.title;
+    return `<div class="shell">${crumb({text:'首页',url:'/'},{text:'学画画',url:'/learn'},{text:'认识画师',url:'/learn/creators'},{text:c.name})}
+      <section class="creator-hero"><div class="creator-hero-mark" aria-hidden="true">✎</div><div class="creator-hero-content"><div class="kicker">MEET THE ARTIST · 站内画师主页</div><h1>${esc(c.name)}</h1><p>${esc(c.description)}</p><div class="creator-hero-badges"><span class="badge sage">本站收录 ${own.length} 条精选视频</span><span class="badge lavender">${esc(c.focus)}</span></div><a class="btn sm" href="${route(resUrl(start.id))}">打开对应${lesson?'学习卡':'绘画挑战'} →</a></div></section>
+      <section class="section creator-feature">${sectionHeading('从这一条开始','观看一小段、暂停一下，再画出自己的版本。')}<div class="creator-spotlight"><div><div class="spotlight-kicker"><span class="badge coral">精选起点</span><strong>${esc(heading)}</strong></div>${videoPlayer(start)}</div><div class="paper-card creator-drawing-card" id="drawing-task"><span class="creator-task-symbol" aria-hidden="true">✧</span><div class="kicker">YOUR TURN · 轮到你创造</div><h2>画一张自己的版本</h2><p>${esc(c.challenge)}</p><div class="creator-task-tips"><strong>试着这样做：</strong><ol><li>看视频中的一个小技巧。</li><li>暂停，把它画在自己的纸上。</li><li>改一个地方，让它成为你的作品。</li></ol></div><a class="btn" href="${route(resUrl(start.id))}">查看${lesson?'完整中文学习卡':'观察提示与小挑战'} →</a></div></div></section>
+      ${more.length?`<section class="section">${sectionHeading('这位画师的其他精选','继续探索，也可以先停下来画画。')}<div class="resource-grid">${more.map(resourceCard).join('')}</div></section>`:''}
+      ${related.length?`<section class="section">${sectionHeading('同主题，还可以看看','下面是其他画师的精选视频，不属于这位画师的频道。')}<div class="resource-grid">${related.map(resourceCard).join('')}</div></section>`:''}
+      <section class="parent-creator-zone"><div class="parent-zone-icon" aria-hidden="true">☘</div><div><h2>家长查看区</h2><p>想看这位画师的完整作品和频道？由家长决定是否前往 YouTube。站内精选内容已经可以独立使用。</p><details class="parent-source parent-source-channel"><summary>展开完整 YouTube 频道入口</summary><div class="parent-source-content"><p>进入原平台后可能出现其他推荐、Shorts 和外部链接。</p>${parentExternalButton(c.channelUrl,'家长打开完整频道')}</div></details></div></section>
+      <div class="creator-back"><a class="link-arrow" href="#/learn/creators">← 认识其他画师</a><a class="link-arrow" href="#/project/character">回到幻想动物项目 ↗</a></div>
+    </div>`;
   }
   function booksPage() {
     return `<div class="shell">${crumb({text:'首页',url:'/'},{text:'学画画',url:'/learn'},{text:'图解与书架'})}<section class="page-intro"><div class="kicker">BOOKS & FREE ILLUSTRATED GUIDES</div><h1>画师书架</h1><p>不是需要全部购买的书单。先利用免费图解，再按兴趣决定是否深入阅读。</p></section><div class="tabs"><a href="#/learn">能力地图</a><a href="#/learn/resources">视频资源库</a><a href="#/learn/creators">认识画师</a><a class="active" href="#/learn/books">图解与书架</a></div><div class="book-grid">${D.books.map((b,i)=>`<div class="paper-card book-card"><div class="book-cover">${i===0?'✎':i===1?'✧':'◌'}</div><span class="badge ${i===0?'sage':'butter'}">${esc(b.type)}</span><h3>${esc(b.name)}</h3><div class="subtle small" style="margin-bottom:13px">${esc(b.by)}</div><p>${esc(b.desc)}</p><a class="btn sm secondary" href="${esc(b.url)}" target="_blank" rel="noopener noreferrer">查看来源网站 ↗</a></div>`).join('')}</div></div>`;
@@ -189,6 +226,7 @@
     else if(path==='/learn')main=learn();
     else if(path==='/learn/resources')main=resourcesPage(query);
     else if(path==='/learn/creators')main=creatorPage();
+    else if(path.startsWith('/learn/creator/'))main=creatorDetailPage(path.split('/').pop());
     else if(path==='/learn/books')main=booksPage();
     else if(path.startsWith('/learn/skill/'))main=skillPage(path.split('/').pop());
     else if(path.startsWith('/learn/lessons/'))main=lessonPage(path.split('/').pop());
@@ -196,7 +234,7 @@
     else if(path==='/play')main=playPage();
     else if(path==='/desk')main=deskPage();
     else main=notFound();
-    app.innerHTML = header(path)+`<main id="main">${main}</main>`+footer();
+    app.innerHTML = header(path)+`<main id="main">${main}</main>`+footer()+leaveDialog();
     if(path==='/learn/resources')filterResources();
     if(scroll) window.scrollTo({top:0,behavior:'instant'});
   }
@@ -226,6 +264,23 @@
   document.addEventListener('click', event=>{
     const button=event.target.closest('[data-action]');if(!button)return;
     const action=button.dataset.action,id=button.dataset.id;
+    if(action==='scroll-drawing'){
+      document.getElementById('drawing-task')?.scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+    if(action==='leave-site'){
+      const url=safeYouTubeUrl(button.dataset.url||'');
+      if(!url){toast('此链接暂时无法打开。');return;}
+      const dialog=document.getElementById('leave-dialog');
+      const link=document.getElementById('leave-confirm-link');
+      if(!dialog||!link)return;
+      link.href=url;
+      if(typeof dialog.showModal==='function')dialog.showModal();
+      else if(window.confirm('即将离开绘画工坊进入 YouTube，可能看到其他推荐。确定由家长打开吗？'))window.open(url,'_blank','noopener,noreferrer');
+      return;
+    }
+    if(action==='cancel-leave'){document.getElementById('leave-dialog')?.close();return;}
+    if(action==='confirm-leave'){document.getElementById('leave-dialog')?.close();return;}
     if(action==='load-video'){
       const videoId=button.dataset.video||'';
       if(!/^[a-zA-Z0-9_-]{11}$/.test(videoId))return;
