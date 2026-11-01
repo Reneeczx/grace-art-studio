@@ -116,7 +116,7 @@
   }
 
   function videoPlayer(r) {
-    return `<div class="paper-card video-card"><div class="video-shell" id="video-shell-${r.id}"><button class="video-trigger" data-action="load-video" data-video="${esc(r.videoId)}" data-title="${esc(r.title)}" aria-label="播放 ${esc(r.title)}"><span class="video-placeholder-sketch" aria-hidden="true">◌ ↗ ✧</span><span class="play-round" aria-hidden="true">▶</span><span>点击观看英文原视频</span></button></div><div class="video-meta"><div><strong>${creatorLink(r.creator)} <span class="subtle">· ${esc(r.duration)}</span></strong><span class="source-title">${esc(r.title)}</span></div><span class="badge sage">站内精选观看</span></div></div><div class="watch-followup"><button class="btn sm sage" type="button" data-action="scroll-drawing">✎ 看完了，开始画！</button><span>不用看完所有视频，试一小步就好。</span></div><details class="parent-source"><summary>家长查看 · 原视频 YouTube 链接</summary><div class="parent-source-content"><p>如果站内播放器不可用，家长可以从原视频网站打开这条视频。</p>${parentExternalButton(sourceLink(r),'家长打开原视频')}</div></details><div class="video-note">使用 YouTube 官方嵌入播放器，仅在点击时加载。播放器内部的链接和视频结束后的推荐仍由 YouTube 控制，无法从本站完全屏蔽。</div>`;
+    return `<div class="paper-card video-card"><div class="video-shell" id="video-shell-${r.id}"><button class="video-trigger" data-action="load-video" data-video="${esc(r.videoId)}" data-title="${esc(r.title)}" aria-label="播放 ${esc(r.title)}"><span class="video-placeholder-sketch" aria-hidden="true">◌ ↗ ✧</span><span class="play-round" aria-hidden="true">▶</span><span>点击观看英文原视频</span></button></div><div class="video-meta"><div><strong>${creatorLink(r.creator)} <span class="subtle">· ${esc(r.duration)}</span></strong><span class="source-title">${esc(r.title)}</span></div><span class="badge sage">站内精选观看</span></div></div><div class="watch-followup"><button class="btn sm sage" type="button" data-action="scroll-drawing">✎ 看完了，开始画！</button><span>不用看完所有视频，试一小步就好。</span></div><details class="parent-source playback-help"><summary>视频要求登录或无法播放？家长协助 ▾</summary><div class="parent-source-content"><p>如果显示“登录以确认你不是机器人”，可以先由家长试试另一种 YouTube 官方嵌入方式。但验证要求由 YouTube 决定，兼容模式也可能失败。</p><div class="parent-playback-actions"><button type="button" class="parent-mode-btn" data-action="load-video-private" data-id="${esc(r.id)}" data-video="${esc(r.videoId)}" data-title="${esc(r.title)}" aria-pressed="true">隐私增强模式</button><button type="button" class="parent-mode-btn" data-action="load-video-standard" data-id="${esc(r.id)}" data-video="${esc(r.videoId)}" data-title="${esc(r.title)}" aria-pressed="false">家长尝试兼容模式</button></div><p class="playback-mode-status" id="playback-mode-status-${esc(r.id)}" role="status">当前默认隐私增强模式。兼容模式可能使用 YouTube 登录状态，也可能出现个性化推荐。</p><p>如果仍提示登录，下面的按钮可以直接打开你已登录的 YouTube 原视频；离站前会再次确认。</p>${parentExternalButton(sourceLink(r),'家长打开原视频')}</div></details><div class="video-note">默认使用 YouTube 隐私增强播放器，仅在点击时加载。播放器内部的推荐、链接和登录验证仍由 YouTube 控制，本站无法完全屏蔽。</div>`;
   }
   function favoriteButton(id,buttonClass='btn secondary') { const saved = state.favorites.includes(id); return `<button class="${buttonClass} fav-btn" data-action="favorite" data-id="${id}" aria-pressed="${saved}">${saved?'♥ 已收藏':'♡ 收藏'}</button>`; }
   function triedButton(id) {const tried = state.tried.includes(id);return `<button class="btn" data-action="tried" data-id="${id}" aria-pressed="${tried}">${tried?'✓ 我已经试过啦':'✓ 我试过啦'}</button>`;}
@@ -281,15 +281,26 @@
     }
     if(action==='cancel-leave'){document.getElementById('leave-dialog')?.close();return;}
     if(action==='confirm-leave'){document.getElementById('leave-dialog')?.close();return;}
-    if(action==='load-video'){
+    if(action==='load-video' || action==='load-video-private' || action==='load-video-standard'){
       const videoId=button.dataset.video||'';
       if(!/^[a-zA-Z0-9_-]{11}$/.test(videoId))return;
-      const shell=button.closest('.video-shell');if(!shell)return;
-      const iframe=document.createElement('iframe');iframe.src=`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&playsinline=1`;
+      const id=button.dataset.id||'';
+      const shell=action==='load-video'?button.closest('.video-shell'):document.getElementById('video-shell-'+id);
+      if(!shell)return;
+      const standard=action==='load-video-standard';
+      const host=standard?'www.youtube.com':'www.youtube-nocookie.com';
+      const iframe=document.createElement('iframe');iframe.src=`https://${host}/embed/${videoId}?rel=0&playsinline=1`;
       iframe.title='YouTube 绘画教程：'+(button.dataset.title||'original video');
       iframe.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
       iframe.referrerPolicy='strict-origin-when-cross-origin';iframe.allowFullscreen=true;iframe.loading='eager';
       shell.replaceChildren(iframe);
+      if(id){
+        const status=document.getElementById('playback-mode-status-'+id);
+        if(status)status.textContent=standard?'已切换为普通 YouTube 嵌入模式；如果仍要求验证，请使用下方的“家长打开原视频”。':'已切换回隐私增强模式；如果仍要求验证，可以由家长打开原视频。';
+        document.querySelectorAll('.parent-mode-btn[data-id="'+id+'"]').forEach(modeButton=>{
+          modeButton.setAttribute('aria-pressed',String(standard?modeButton.dataset.action==='load-video-standard':modeButton.dataset.action==='load-video-private'));
+        });
+      }
       return;
     }
     if(action==='favorite' && id){
